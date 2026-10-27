@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bảng Nhiệm Vụ Pixel - Task Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Pixelify+Sans:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* ---------- Màu nền ---------- */
+      --bg-page:        #1b1b2f;   /* nền trang (xanh đêm đậm) */
+      --bg-panel:       #2a2a45;   /* nền khung/panel */
+      --bg-panel-light: #3a3a5c;   /* nền khung sáng hơn / hover */
+      --bg-inset:       #121222;   /* ô trũng: input, thanh tiến độ */
+
+      /* ---------- Chữ ---------- */
+      --text:           #ffffff;
+      --text-muted:     #a9a9c8;
+      --text-on-accent: #1a1a1a;   /* chữ đặt trên nút màu sáng */
+
+      /* ---------- Màu nhấn (mỗi cái có 3 sắc: sáng / chính / tối) ---------- */
+      --green-light: #8be36a;  --green: #4cb944;  --green-dark: #2b7a2b;   /* hành động chính */
+      --yellow-light:#ffe580;  --yellow:#ffc72c;  --yellow-dark:#b8860b;   /* điểm/XP/nổi bật */
+      --blue-light:  #7ec8ff;  --blue:  #3a8fe0;  --blue-dark:  #1f548f;   /* thông tin/liên kết */
+      --red-light:   #ff8a80;  --red:   #e04646;  --red-dark:   #8f2020;   /* nguy hiểm/xoá */
+      --gray-light:  #c9c9d6;  --gray:  #8e8ea5;  --gray-dark:  #55556b;   /* nút phụ / vô hiệu */
+
+      /* ---------- Viền & bóng ---------- */
+      --outline:        #0b0b14;   /* viền ngoài của mọi thứ (gần đen) */
+      --border-w:       4px;       /* viền chuẩn */
+      --border-w-sm:    3px;       /* viền cho thành phần nhỏ */
+      --shadow-offset:  4px;       /* độ lệch bóng chuẩn */
+
+      /* ---------- Cỡ & khoảng cách (bội số của 4) ---------- */
+      --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+      --space-4: 16px; --space-5: 24px; --space-6: 32px;
+
+      /* ---------- Font ---------- */
+      --font-pixel: 'Chakra Petch', 'Pixelify Sans', sans-serif; /* tiêu đề, nút, nhãn: vuông vức và cực rõ dấu tiếng Việt */
+      --font-body:  'Chakra Petch', system-ui, -apple-system, sans-serif; /* chữ nội dung dễ đọc */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    /* Thanh cuộn đồng bộ */
+    ::-webkit-scrollbar { width: 16px; height: 16px; }
+    ::-webkit-scrollbar-track { background: var(--bg-inset); border-left: var(--border-w) solid var(--outline); }
+    ::-webkit-scrollbar-thumb { background: var(--gray); border: var(--border-w) solid var(--outline); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--gray-light); }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 500;
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: var(--space-5) var(--space-4);
+    }
+
+    img, svg, canvas, .sprite {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+    }
+
+    /* Khung chuẩn .pixel-box */
+    .pixel-box {
+      background: var(--bg-panel);
+      border: var(--border-w) solid var(--outline);
+      border-radius: 0;
+      box-shadow:
+        inset calc(var(--border-w) * -1) calc(var(--border-w) * -1) 0 0 var(--bg-inset),
+        inset var(--border-w) var(--border-w) 0 0 var(--bg-panel-light),
+        var(--shadow-offset) var(--shadow-offset) 0 0 var(--outline);
+    }
+
+    /* Thanh tiêu đề panel */
+    .panel-header {
+      background: var(--bg-panel-light);
+      border-bottom: var(--border-w) solid var(--outline);
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+
+    .panel-title {
+      font-family: var(--font-pixel);
+      font-size: 22px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .panel-body {
+      padding: var(--space-5);
+    }
+
+    /* Huy hiệu / Nhãn (Badge) */
+    .pixel-badge {
+      font-family: var(--font-pixel);
+      font-size: 15px;
+      font-weight: 700;
+      padding: var(--space-1) var(--space-3);
+      border: var(--border-w-sm) solid var(--outline);
+      border-radius: 0;
+      background: var(--bg-inset);
+      color: var(--yellow);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Form tạo task */
+    .task-form {
+      display: flex;
+      gap: var(--space-3);
+      align-items: flex-start;
+    }
+
+    .input-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .pixel-input {
+      width: 100%;
+      height: 48px;
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+      background: var(--bg-inset);
+      border: var(--border-w) solid var(--outline);
+      border-radius: 0;
+      padding: var(--space-2) var(--space-4);
+      box-shadow:
+        inset 4px 4px 0 0 var(--outline),
+        inset -4px -4px 0 0 var(--bg-panel);
+    }
+
+    .pixel-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .pixel-input:focus {
+      outline: none;
+      border-color: var(--yellow);
+    }
+
+    .pixel-input.is-error {
+      border-color: var(--red);
+    }
+
+    .error-msg {
+      color: var(--red-light);
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: var(--space-2);
+      display: none;
+    }
+
+    .error-msg.visible {
+      display: block;
+    }
+
+    /* Nút bấm chuẩn .pixel-btn */
+    .pixel-btn {
+      font-family: var(--font-pixel);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+      padding: var(--space-3) var(--space-5);
+      min-height: 48px;
+      min-width: 48px;
+      cursor: pointer;
+      color: var(--text-on-accent);
+      background: var(--green);
+      border: var(--border-w) solid var(--outline);
+      border-radius: 0;
+      box-shadow:
+        inset 0 4px 0 0 var(--green-light),
+        inset 0 -4px 0 0 var(--green-dark),
+        var(--shadow-offset) var(--shadow-offset) 0 0 var(--outline);
+      text-transform: uppercase;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      white-space: nowrap;
+    }
+
+    .pixel-btn * {
+      pointer-events: none;
+    }
+
+    .pixel-btn:hover {
+      filter: brightness(1.1);
+    }
+
+    .pixel-btn:active {
+      transform: translate(var(--shadow-offset), var(--shadow-offset));
+      box-shadow:
+        inset 0 4px 0 0 var(--green-dark),
+        inset 0 -4px 0 0 var(--green-light),
+        0 0 0 0 var(--outline);
+    }
+
+    .pixel-btn:focus-visible {
+      outline: 4px dashed var(--yellow);
+      outline-offset: 4px;
+    }
+
+    .pixel-btn:disabled {
+      background: var(--gray);
+      color: var(--gray-dark);
+      box-shadow:
+        inset 0 4px 0 0 var(--gray-light),
+        inset 0 -4px 0 0 var(--gray-dark),
+        var(--shadow-offset) var(--shadow-offset) 0 0 var(--outline);
+      cursor: not-allowed;
+      filter: none;
+    }
+
+    /* Biến thể nút secondary (xám - chưa hoàn thành) */
+    .pixel-btn--secondary {
+      background: var(--gray);
+      color: var(--text-on-accent);
+      box-shadow:
+        inset 0 4px 0 0 var(--gray-light),
+        inset 0 -4px 0 0 var(--gray-dark),
+        var(--shadow-offset) var(--shadow-offset) 0 0 var(--outline);
+    }
+    .pixel-btn--secondary:active {
+      box-shadow:
+        inset 0 4px 0 0 var(--gray-dark),
+        inset 0 -4px 0 0 var(--gray-light),
+        0 0 0 0 var(--outline);
+    }
+
+    /* Biến thể nút danger (đỏ - xoá) */
+    .pixel-btn--danger {
+      background: var(--red);
+      color: var(--text);
+      box-shadow:
+        inset 0 4px 0 0 var(--red-light),
+        inset 0 -4px 0 0 var(--red-dark),
+        var(--shadow-offset) var(--shadow-offset) 0 0 var(--outline);
+    }
+    .pixel-btn--danger:active {
+      box-shadow:
+        inset 0 4px 0 0 var(--red-dark),
+        inset 0 -4px 0 0 var(--red-light),
+        0 0 0 0 var(--outline);
+    }
+
+    /* Nút trạng thái task (Checkbox button >= 44x44px) */
+    .status-btn {
+      padding: var(--space-2) var(--space-3);
+      font-size: 15px;
+      min-height: 44px;
+    }
+
+    /* Danh sách task */
+    .task-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .task-item {
+      background: var(--bg-inset);
+      border: var(--border-w) solid var(--outline);
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0 0 var(--outline);
+    }
+
+    .task-item.is-done {
+      border-color: var(--green-dark);
+    }
+
+    .task-info {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      flex: 1;
+      min-width: 0;
+    }
+
+    .task-name {
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .task-item.is-done .task-name {
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+
+    .task-status-tag {
+      font-family: var(--font-pixel);
+      font-size: 14px;
+      font-weight: 700;
+      padding: var(--space-1) var(--space-2);
+      border: var(--border-w-sm) solid var(--outline);
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .task-status-tag.tag-todo {
+      background: var(--gray-dark);
+      color: var(--text);
+    }
+
+    .task-status-tag.tag-done {
+      background: var(--green-dark);
+      color: var(--green-light);
+    }
+
+    .task-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      flex-shrink: 0;
+    }
+
+    /* Trạng thái trống */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-6) var(--space-4);
+      background: var(--bg-inset);
+      border: var(--border-w) solid var(--outline);
+      color: var(--text-muted);
+      font-size: 16px;
+    }
+
+    /* Con trỏ nhấp nháy kiểu pixel */
+    @keyframes blink { 50% { opacity: 0; } }
+    .cursor {
+      display: inline-block;
+      width: 12px;
+      height: 20px;
+      background: var(--green-light);
+      vertical-align: middle;
+      margin-left: var(--space-1);
+      animation: blink 1s steps(1) infinite;
+    }
+
+    /* Responsive trên màn hình nhỏ */
+    @media (max-width: 560px) {
+      :root {
+        --shadow-offset: 3px;
+      }
+      .panel-title {
+        font-size: 16px;
+      }
+      .task-form {
+        flex-direction: column;
+      }
+      .task-item {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .task-actions {
+        justify-content: flex-end;
+      }
+      .pixel-btn {
+        white-space: normal;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <!-- Khu vực 1: Thêm công việc mới -->
+    <section class="pixel-box" aria-labelledby="create-heading">
+      <header class="panel-header">
+        <h1 id="create-heading" class="panel-title">
+          <!-- Icon kiếm/bảng nhiệm vụ 16x16 phóng to x2 (32x32) -->
+          <svg class="sprite" width="32" height="32" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="2" y="1" width="12" height="14" fill="var(--yellow)"/>
+            <rect x="3" y="2" width="10" height="12" fill="var(--bg-inset)"/>
+            <rect x="5" y="4" width="6" height="2" fill="var(--green-light)"/>
+            <rect x="5" y="7" width="6" height="2" fill="var(--text)"/>
+            <rect x="5" y="10" width="4" height="2" fill="var(--text-muted)"/>
+          </svg>
+          BẢNG NHIỆM VỤ<span class="cursor" aria-hidden="true"></span>
+        </h1>
+        <span id="task-counter" class="pixel-badge">0 NHIỆM VỤ</span>
+      </header>
+
+      <div class="panel-body">
+        <form id="task-form" class="task-form" novalidate>
+          <div class="input-wrapper">
+            <label for="task-input" class="sr-only">Tên nhiệm vụ mới</label>
+            <input
+              type="text"
+              id="task-input"
+              class="pixel-input"
+              placeholder="Nhập tên nhiệm vụ mới..."
+              autocomplete="off"
+              required
+            >
+            <p id="error-msg" class="error-msg" role="alert">Vui lòng nhập tên nhiệm vụ trước khi thêm!</p>
+          </div>
+          <!-- Nút primary duy nhất trong khu vực tạo task -->
+          <button type="submit" id="add-btn" class="pixel-btn">
+            <svg class="sprite" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="7" y="2" width="2" height="12" fill="var(--text-on-accent)"/>
+              <rect x="2" y="7" width="12" height="2" fill="var(--text-on-accent)"/>
+            </svg>
+            THÊM MỚI
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Khu vực 2: Danh sách công việc -->
+    <section class="pixel-box" aria-labelledby="list-heading">
+      <header class="panel-header">
+        <h2 id="list-heading" class="panel-title">DANH SÁCH CÔNG VIỆC</h2>
+      </header>
+
+      <div class="panel-body">
+        <ul id="task-list" class="task-list" aria-live="polite"></ul>
+        <div id="empty-state" class="empty-state">
+          Chưa có nhiệm vụ nào. Hãy thêm nhiệm vụ mới ở trên để bắt đầu!
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const taskForm = document.getElementById('task-form');
+    const taskInput = document.getElementById('task-input');
+    const errorMsg = document.getElementById('error-msg');
+    const taskList = document.getElementById('task-list');
+    const emptyState = document.getElementById('empty-state');
+    const taskCounter = document.getElementById('task-counter');
+
+    // Icon SVG Pixel cho nút Đổi trạng thái và nút Xoá
+    const ICON_CHECK = `
+      <svg class="sprite" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="2" y="8" width="2" height="2" fill="var(--text-on-accent)"/>
+        <rect x="4" y="10" width="2" height="2" fill="var(--text-on-accent)"/>
+        <rect x="6" y="12" width="2" height="2" fill="var(--text-on-accent)"/>
+        <rect x="8" y="8" width="2" height="4" fill="var(--text-on-accent)"/>
+        <rect x="10" y="6" width="2" height="4" fill="var(--text-on-accent)"/>
+        <rect x="12" y="4" width="2" height="4" fill="var(--text-on-accent)"/>
+      </svg>
+    `;
+
+    const ICON_BOX = `
+      <svg class="sprite" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="2" y="2" width="12" height="2" fill="var(--text-on-accent)"/>
+        <rect x="2" y="12" width="12" height="2" fill="var(--text-on-accent)"/>
+        <rect x="2" y="4" width="2" height="8" fill="var(--text-on-accent)"/>
+        <rect x="12" y="4" width="2" height="8" fill="var(--text-on-accent)"/>
+      </svg>
+    `;
+
+    const ICON_TRASH = `
+      <svg class="sprite" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="5" y="2" width="6" height="2" fill="var(--text)"/>
+        <rect x="2" y="4" width="12" height="2" fill="var(--text)"/>
+        <rect x="4" y="6" width="2" height="8" fill="var(--text)"/>
+        <rect x="7" y="6" width="2" height="8" fill="var(--text)"/>
+        <rect x="10" y="6" width="2" height="8" fill="var(--text)"/>
+        <rect x="4" y="12" width="8" height="2" fill="var(--text)"/>
+      </svg>
+    `;
+
+    // 1. Xem danh sách task
+    async function fetchTasks() {
+      const res = await fetch('/api/tasks');
+      const tasks = await res.json();
+      renderTasks(tasks);
+    }
+
+    // Hiển thị danh sách task ra giao diện
+    function renderTasks(tasks) {
+      taskList.innerHTML = '';
+      const doneCount = tasks.filter(t => t.done).length;
+      taskCounter.textContent = `${doneCount}/${tasks.length} XONG`;
+
+      if (tasks.length === 0) {
+        emptyState.style.display = 'block';
+        return;
+      }
+      emptyState.style.display = 'none';
+
+      tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.className = `task-item ${task.done ? 'is-done' : ''}`;
+
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'task-info';
+
+        const statusTag = document.createElement('span');
+        statusTag.className = `task-status-tag ${task.done ? 'tag-done' : 'tag-todo'}`;
+        statusTag.textContent = task.done ? 'ĐÃ XONG' : 'CHƯA XONG';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'task-name';
+        nameSpan.textContent = task.name;
+
+        infoDiv.appendChild(statusTag);
+        infoDiv.appendChild(nameSpan);
+
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'task-actions';
+
+        // Nút đổi trạng thái: chưa hoàn thành <-> hoàn thành
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = `pixel-btn status-btn pixel-btn--secondary`;
+        toggleBtn.innerHTML = `${task.done ? ICON_CHECK : ICON_BOX} <span>${task.done ? 'LÀM LẠI' : 'HOÀN THÀNH'}</span>`;
+        toggleBtn.setAttribute('aria-label', `${task.done ? 'Đánh dấu chưa hoàn thành' : 'Đánh dấu hoàn thành'} cho ${task.name}`);
+        toggleBtn.addEventListener('click', () => toggleTask(task.id));
+
+        // Nút xoá task
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'pixel-btn status-btn pixel-btn--danger';
+        deleteBtn.innerHTML = `${ICON_TRASH} <span>XOÁ</span>`;
+        deleteBtn.setAttribute('aria-label', `Xoá nhiệm vụ ${task.name}`);
+        deleteBtn.addEventListener('click', () => deleteTask(task.id));
+
+        actionsDiv.appendChild(toggleBtn);
+        actionsDiv.appendChild(deleteBtn);
+
+        li.appendChild(infoDiv);
+        li.appendChild(actionsDiv);
+        taskList.appendChild(li);
+      });
+    }
+
+    // 2. Tạo task có tên
+    let isSubmitting = false;
+
+    async function handleCreateTask() {
+      if (isSubmitting) return;
+
+      const name = taskInput.value.trim();
+
+      if (!name) {
+        taskInput.classList.add('is-error');
+        errorMsg.classList.add('visible');
+        taskInput.focus();
+        return;
+      }
+
+      taskInput.classList.remove('is-error');
+      errorMsg.classList.remove('visible');
+
+      isSubmitting = true;
+      const addBtn = document.getElementById('add-btn');
+      if (addBtn) addBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name })
+        });
+
+        if (res.ok) {
+          taskInput.value = '';
+          await fetchTasks();
+        }
+      } catch (err) {
+        console.error('Lỗi thêm task:', err);
+      } finally {
+        isSubmitting = false;
+        if (addBtn) addBtn.disabled = false;
+        taskInput.focus();
+      }
+    }
+
+    // Gắn sự kiện submit form
+    taskForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleCreateTask();
+    });
+
+    // Đảm bảo click trực tiếp nút hoặc phím Enter luôn kích hoạt ngay lần đầu
+    const addBtn = document.getElementById('add-btn');
+    if (addBtn) {
+      addBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        handleCreateTask();
+      });
+    }
+
+    taskInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleCreateTask();
+      }
+    });
+
+    taskInput.addEventListener('input', () => {
+      if (taskInput.classList.contains('is-error')) {
+        taskInput.classList.remove('is-error');
+        errorMsg.classList.remove('visible');
+      }
+    });
+
+    // 3. Đổi trạng thái task: chưa hoàn thành <-> hoàn thành
+    async function toggleTask(id) {
+      const res = await fetch(`/api/tasks/${id}/toggle`, {
+        method: 'PATCH'
+      });
+      if (res.ok) {
+        await fetchTasks();
+      }
+    }
+
+    // 4. Xoá task
+    async function deleteTask(id) {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        await fetchTasks();
+      }
+    }
+
+    // Tải danh sách khi mở trang
+    fetchTasks();
+  </script>
+</body>
+</html>
