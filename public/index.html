@@ -386,6 +386,25 @@
     }
 
     /* Con trỏ nhấp nháy kiểu pixel */
+    /* V2: chỉ báo đồng bộ với server */
+    .sync-status {
+      font-family: var(--font-pixel);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--green-light);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sync-status::before {
+      content: '';
+      width: 10px; height: 10px;
+      background: currentColor;
+      box-shadow: 0 0 0 2px var(--outline);
+    }
+    .sync-status.is-offline { color: var(--red-light); }
+    .cursor.is-offline { background: var(--red) !important; }
+
     @keyframes blink { 50% { opacity: 0; } }
     .cursor {
       display: inline-block;
@@ -470,6 +489,7 @@
     <section class="pixel-box" aria-labelledby="list-heading">
       <header class="panel-header">
         <h2 id="list-heading" class="panel-title">DANH SÁCH CÔNG VIỆC</h2>
+        <span id="sync-status" class="sync-status" role="status">ĐANG KẾT NỐI...</span>
       </header>
 
       <div class="panel-body">
@@ -522,10 +542,35 @@
     `;
 
     // 1. Xem danh sách task
+    // V2: mọi client đọc từ cùng 1 server; chỉ vẽ lại khi dữ liệu thật sự đổi để không giật UI
+    const POLL_INTERVAL_MS = 2000;
+    const syncStatus = document.getElementById('sync-status');
+    const cursorEl = document.querySelector('.cursor');
+    let lastSnapshot = null;
+
+    function setOnline(online) {
+      syncStatus.classList.toggle('is-offline', !online);
+      cursorEl && cursorEl.classList.toggle('is-offline', !online);
+      syncStatus.textContent = online
+        ? `ĐỒNG BỘ ${new Date().toLocaleTimeString('vi-VN')}`
+        : 'MẤT KẾT NỐI SERVER';
+    }
+
     async function fetchTasks() {
-      const res = await fetch('/api/tasks');
-      const tasks = await res.json();
-      renderTasks(tasks);
+      try {
+        const res = await fetch('/api/tasks', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const tasks = await res.json();
+        const snapshot = JSON.stringify(tasks);
+        if (snapshot !== lastSnapshot) {
+          lastSnapshot = snapshot;
+          renderTasks(tasks);
+        }
+        setOnline(true);
+      } catch (err) {
+        console.error('Không lấy được dữ liệu từ server:', err);
+        setOnline(false);
+      }
     }
 
     // Hiển thị danh sách task ra giao diện
@@ -567,7 +612,7 @@
         toggleBtn.className = `pixel-btn status-btn pixel-btn--secondary`;
         toggleBtn.innerHTML = `${task.done ? ICON_CHECK : ICON_BOX} <span>${task.done ? 'LÀM LẠI' : 'HOÀN THÀNH'}</span>`;
         toggleBtn.setAttribute('aria-label', `${task.done ? 'Đánh dấu chưa hoàn thành' : 'Đánh dấu hoàn thành'} cho ${task.name}`);
-        toggleBtn.addEventListener('click', () => toggleTask(task.id));
+        toggleBtn.addEventListener('click', () => setTaskDone(task.id, !task.done));
 
         // Nút xoá task
         const deleteBtn = document.createElement('button');
@@ -621,6 +666,7 @@
         }
       } catch (err) {
         console.error('Lỗi thêm task:', err);
+        setOnline(false);
       } finally {
         isSubmitting = false;
         if (addBtn) addBtn.disabled = false;
@@ -658,27 +704,39 @@
     });
 
     // 3. Đổi trạng thái task: chưa hoàn thành <-> hoàn thành
-    async function toggleTask(id) {
-      const res = await fetch(`/api/tasks/${id}/toggle`, {
-        method: 'PATCH'
-      });
-      if (res.ok) {
-        await fetchTasks();
+    // V2: gửi trạng thái mong muốn thay vì "lật" để không đè thao tác của client khác
+    async function setTaskDone(id, done) {
+      try {
+        const res = await fetch(`/api/tasks/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ done })
+        });
+        if (res.status === 404) alert('Nhiệm vụ này đã bị người khác xoá.');
+      } catch (err) {
+        setOnline(false);
       }
+      await fetchTasks();
     }
 
     // 4. Xoá task
     async function deleteTask(id) {
-      const res = await fetch(`/api/tasks/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        await fetchTasks();
+      try {
+        // 404 nghĩa là client khác đã xoá trước -> chỉ cần tải lại danh sách
+        await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+      } catch (err) {
+        setOnline(false);
       }
+      await fetchTasks();
     }
 
-    // Tải danh sách khi mở trang
+    // Tải danh sách khi mở trang, sau đó polling định kỳ để thấy thay đổi từ client khác
     fetchTasks();
+    setInterval(fetchTasks, POLL_INTERVAL_MS);
+    // Quay lại tab thì cập nhật ngay, không chờ chu kỳ polling
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) fetchTasks();
+    });
   </script>
 </body>
 </html>
