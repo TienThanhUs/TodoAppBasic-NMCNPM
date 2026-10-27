@@ -20,9 +20,17 @@ npm install
 
 ## Cách chạy
 
-```bash
-npm start
-```
+### Cách 1: Chạy bằng Terminal trong VS Code (Khuyên dùng)
+1. Mở thư mục dự án trong VS Code.
+2. Mở Terminal tích hợp bằng phím tắt **`Ctrl + \``** (hoặc trên Mac: **`Control + \``** / Menu: **Terminal -> New Terminal**).
+3. Gõ lệnh:
+   ```bash
+   npm start
+   ```
+4. Mở trình duyệt và truy cập: **http://localhost:3000**
 
-Sau đó mở trình duyệt và truy cập:
-**http://localhost:3000**
+### Cách 2: Bấm 1 nút (F5) trong VS Code
+Dự án đã được tạo sẵn file cấu hình `.vscode/launch.json`:
+1. Mở VS Code, nhấn phím **F5** (hoặc vào tab **Run and Debug** ở thanh bên trái -> bấm nút Play màu xanh **"Chạy Server (F5)"**).
+2. Server sẽ tự động chạy trong cửa sổ terminal của VS Code.
+3. Mở trình duyệt vào **http://localhost:3000**.
