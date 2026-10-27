@@ -3,10 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bảng Nhiệm Vụ Pixel - Task Manager</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Pixelify+Sans:wght@600;700&display=swap" rel="stylesheet">
+  <title>Bảng Nhiệm Vụ Kanban - Pixel Task Manager V3</title>
   <style>
     @font-face {
       font-family: 'MinecraftVN';
@@ -28,20 +25,20 @@
       --text-muted:     #a9a9c8;
       --text-on-accent: #1a1a1a;   /* chữ đặt trên nút màu sáng */
 
-      /* ---------- Màu nhấn (mỗi cái có 3 sắc: sáng / chính / tối) ---------- */
-      --green-light: #8be36a;  --green: #4cb944;  --green-dark: #2b7a2b;   /* hành động chính */
-      --yellow-light:#ffe580;  --yellow:#ffc72c;  --yellow-dark:#b8860b;   /* điểm/XP/nổi bật */
-      --blue-light:  #7ec8ff;  --blue:  #3a8fe0;  --blue-dark:  #1f548f;   /* thông tin/liên kết */
+      /* ---------- Màu nhấn ---------- */
+      --green-light: #8be36a;  --green: #4cb944;  --green-dark: #2b7a2b;   /* hoàn thành */
+      --yellow-light:#ffe580;  --yellow:#ffc72c;  --yellow-dark:#b8860b;   /* điểm/XP/chưa xong */
+      --blue-light:  #7ec8ff;  --blue:  #3a8fe0;  --blue-dark:  #1f548f;   /* thông tin */
       --red-light:   #ff8a80;  --red:   #e04646;  --red-dark:   #8f2020;   /* nguy hiểm/xoá */
-      --gray-light:  #c9c9d6;  --gray:  #8e8ea5;  --gray-dark:  #55556b;   /* nút phụ / vô hiệu */
+      --gray-light:  #c9c9d6;  --gray:  #8e8ea5;  --gray-dark:  #55556b;   /* phụ */
 
       /* ---------- Viền & bóng ---------- */
-      --outline:        #0b0b14;   /* viền ngoài của mọi thứ (gần đen) */
-      --border-w:       4px;       /* viền chuẩn */
-      --border-w-sm:    3px;       /* viền cho thành phần nhỏ */
-      --shadow-offset:  4px;       /* độ lệch bóng chuẩn */
+      --outline:        #0b0b14;
+      --border-w:       4px;
+      --border-w-sm:    3px;
+      --shadow-offset:  4px;
 
-      /* ---------- Cỡ & khoảng cách (bội số của 4) ---------- */
+      /* ---------- Cỡ & khoảng cách ---------- */
       --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
       --space-4: 16px; --space-5: 24px; --space-6: 32px;
 
@@ -87,7 +84,7 @@
     }
 
     .container {
-      max-width: 680px;
+      max-width: 960px;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -141,6 +138,17 @@
       color: var(--yellow);
       text-transform: uppercase;
       letter-spacing: 1px;
+    }
+
+    .sync-status {
+      font-family: var(--font-pixel);
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      color: var(--green-light);
+    }
+
+    .sync-status.is-offline {
+      color: var(--red-light);
     }
 
     /* Form tạo task */
@@ -243,11 +251,11 @@
     }
 
     .pixel-btn:active {
-      transform: translate(var(--shadow-offset), var(--shadow-offset));
+      transform: translate(2px, 2px);
       box-shadow:
         inset 0 4px 0 0 var(--green-dark),
         inset 0 -4px 0 0 var(--green-light),
-        0 0 0 0 var(--outline);
+        2px 2px 0 0 var(--outline);
     }
 
     .pixel-btn:focus-visible {
@@ -255,18 +263,7 @@
       outline-offset: 4px;
     }
 
-    .pixel-btn:disabled {
-      background: var(--gray);
-      color: var(--gray-dark);
-      box-shadow:
-        inset 0 4px 0 0 var(--gray-light),
-        inset 0 -4px 0 0 var(--gray-dark),
-        var(--shadow-offset) var(--shadow-offset) 0 0 var(--outline);
-      cursor: not-allowed;
-      filter: none;
-    }
-
-    /* Biến thể nút secondary (xám - chưa hoàn thành) */
+    /* Biến thể nút action Kanban */
     .pixel-btn--secondary {
       background: var(--gray);
       color: var(--text-on-accent);
@@ -279,10 +276,24 @@
       box-shadow:
         inset 0 4px 0 0 var(--gray-dark),
         inset 0 -4px 0 0 var(--gray-light),
-        0 0 0 0 var(--outline);
+        2px 2px 0 0 var(--outline);
     }
 
-    /* Biến thể nút danger (đỏ - xoá) */
+    .pixel-btn--accent {
+      background: var(--yellow);
+      color: var(--text-on-accent);
+      box-shadow:
+        inset 0 4px 0 0 var(--yellow-light),
+        inset 0 -4px 0 0 var(--yellow-dark),
+        var(--shadow-offset) var(--shadow-offset) 0 0 var(--outline);
+    }
+    .pixel-btn--accent:active {
+      box-shadow:
+        inset 0 4px 0 0 var(--yellow-dark),
+        inset 0 -4px 0 0 var(--yellow-light),
+        2px 2px 0 0 var(--outline);
+    }
+
     .pixel-btn--danger {
       background: var(--red);
       color: var(--text);
@@ -295,116 +306,131 @@
       box-shadow:
         inset 0 4px 0 0 var(--red-dark),
         inset 0 -4px 0 0 var(--red-light),
-        0 0 0 0 var(--outline);
+        2px 2px 0 0 var(--outline);
     }
 
-    /* Nút trạng thái task (Checkbox button >= 44x44px) */
     .status-btn {
       padding: var(--space-2) var(--space-3);
       font-size: 13px;
-      min-height: 44px;
+      min-height: 40px;
     }
 
-    /* Danh sách task */
-    .task-list {
-      list-style: none;
+    /* ========================================= */
+    /* BẢNG KANBAN 2 CỘT: CHƯA XONG & HOÀN THÀNH */
+    /* ========================================= */
+    .kanban-board {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+      align-items: flex-start;
+    }
+
+    .kanban-column {
+      background: var(--bg-panel);
+      border: var(--border-w) solid var(--outline);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0 0 var(--outline);
       display: flex;
       flex-direction: column;
-      gap: var(--space-4);
     }
 
-    .task-item {
-      background: var(--bg-inset);
-      border: var(--border-w) solid var(--outline);
+    .kanban-column-header {
       padding: var(--space-3) var(--space-4);
+      border-bottom: var(--border-w) solid var(--outline);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: var(--space-3);
-      box-shadow: var(--shadow-offset) var(--shadow-offset) 0 0 var(--outline);
+      gap: var(--space-2);
     }
 
-    .task-item.is-done {
-      border-color: var(--green-dark);
+    .kanban-column-header.todo-header {
+      background: var(--bg-panel-light);
+      border-top: var(--border-w) solid var(--yellow);
     }
 
-    .task-info {
+    .kanban-column-header.done-header {
+      background: var(--bg-panel-light);
+      border-top: var(--border-w) solid var(--green);
+    }
+
+    .kanban-column-title {
+      font-family: var(--font-pixel);
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       display: flex;
       align-items: center;
-      gap: var(--space-3);
-      flex: 1;
-      min-width: 0;
+      gap: var(--space-2);
     }
 
-    .task-name {
-      font-family: var(--font-body);
-      font-size: 16px;
-      color: var(--text);
-      word-break: break-word;
-    }
-
-    .task-item.is-done .task-name {
-      color: var(--text-muted);
-      text-decoration: line-through;
-    }
-
-    .task-status-tag {
+    .column-badge {
       font-family: var(--font-pixel);
       font-size: 12px;
       padding: var(--space-1) var(--space-2);
       border: var(--border-w-sm) solid var(--outline);
-      white-space: nowrap;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      background: var(--bg-inset);
     }
 
-    .task-status-tag.tag-todo {
-      background: var(--gray-dark);
-      color: var(--text);
-    }
+    .column-badge.todo-badge { color: var(--yellow); }
+    .column-badge.done-badge { color: var(--green-light); }
 
-    .task-status-tag.tag-done {
-      background: var(--green-dark);
-      color: var(--green-light);
-    }
-
-    .task-actions {
+    .kanban-column-body {
+      padding: var(--space-3);
       display: flex;
-      align-items: center;
-      gap: var(--space-2);
-      flex-shrink: 0;
+      flex-direction: column;
+      gap: var(--space-3);
+      min-height: 180px;
     }
 
-    /* Trạng thái trống */
-    .empty-state {
-      text-align: center;
-      padding: var(--space-6) var(--space-4);
+    /* Thẻ nhiệm vụ (Kanban Card) */
+    .task-card {
       background: var(--bg-inset);
       border: var(--border-w) solid var(--outline);
-      color: var(--text-muted);
+      padding: var(--space-3);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0 0 var(--outline);
+    }
+
+    .task-card.is-done {
+      border-left: calc(var(--border-w) * 2) solid var(--green);
+    }
+    .task-card:not(.is-done) {
+      border-left: calc(var(--border-w) * 2) solid var(--yellow);
+    }
+
+    .task-card-title {
+      font-family: var(--font-body);
       font-size: 16px;
+      color: var(--text);
+      word-break: break-word;
+      line-height: 1.4;
+    }
+
+    .task-card.is-done .task-card-title {
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+
+    .task-card-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: var(--space-2);
+      border-top: var(--border-w-sm) solid var(--bg-panel);
+      padding-top: var(--space-2);
+    }
+
+    .empty-column {
+      text-align: center;
+      padding: var(--space-5) var(--space-2);
+      color: var(--text-muted);
+      font-size: 14px;
+      border: 2px dashed var(--gray-dark);
+      margin: auto 0;
     }
 
     /* Con trỏ nhấp nháy kiểu pixel */
-    /* V2: chỉ báo đồng bộ với server */
-    .sync-status {
-      font-family: var(--font-pixel);
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--green-light);
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .sync-status::before {
-      content: '';
-      width: 10px; height: 10px;
-      background: currentColor;
-      box-shadow: 0 0 0 2px var(--outline);
-    }
-    .sync-status.is-offline { color: var(--red-light); }
-    .cursor.is-offline { background: var(--red) !important; }
-
     @keyframes blink { 50% { opacity: 0; } }
     .cursor {
       display: inline-block;
@@ -415,11 +441,12 @@
       margin-left: var(--space-1);
       animation: blink 1s steps(1) infinite;
     }
+    .cursor.is-offline { background: var(--red); }
 
-    /* Responsive trên màn hình nhỏ */
-    @media (max-width: 560px) {
-      :root {
-        --shadow-offset: 3px;
+    /* Responsive cho màn hình nhỏ / mobile */
+    @media (max-width: 720px) {
+      .kanban-board {
+        grid-template-columns: 1fr;
       }
       .panel-title {
         font-size: 16px;
@@ -427,26 +454,18 @@
       .task-form {
         flex-direction: column;
       }
-      .task-item {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .task-actions {
-        justify-content: flex-end;
-      }
       .pixel-btn {
-        white-space: normal;
+        width: 100%;
       }
     }
   </style>
 </head>
 <body>
   <main class="container">
-    <!-- Khu vực 1: Thêm công việc mới -->
+    <!-- Khu vực Tạo task mới -->
     <section class="pixel-box" aria-labelledby="create-heading">
       <header class="panel-header">
         <h1 id="create-heading" class="panel-title">
-          <!-- Icon kiếm/bảng nhiệm vụ 16x16 phóng to x2 (32x32) -->
           <svg class="sprite" width="32" height="32" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <rect x="2" y="1" width="12" height="14" fill="var(--yellow)"/>
             <rect x="3" y="2" width="10" height="12" fill="var(--bg-inset)"/>
@@ -454,13 +473,13 @@
             <rect x="5" y="7" width="6" height="2" fill="var(--text)"/>
             <rect x="5" y="10" width="4" height="2" fill="var(--text-muted)"/>
           </svg>
-          BẢNG NHIỆM VỤ<span class="cursor" aria-hidden="true"></span>
+          BẢNG KANBAN NHIỆM VỤ<span class="cursor" aria-hidden="true"></span>
         </h1>
-        <span id="task-counter" class="pixel-badge">0 NHIỆM VỤ</span>
+        <span id="sync-status" class="sync-status" role="status">ĐANG KẾT NỐI...</span>
       </header>
 
       <div class="panel-body">
-        <form id="task-form" class="task-form" novalidate>
+        <form id="task-form" class="task-form" novalidate onsubmit="event.preventDefault(); handleCreateTask();">
           <div class="input-wrapper">
             <label for="task-input" class="sr-only">Tên nhiệm vụ mới</label>
             <input
@@ -473,8 +492,7 @@
             >
             <p id="error-msg" class="error-msg" role="alert">Vui lòng nhập tên nhiệm vụ trước khi thêm!</p>
           </div>
-          <!-- Nút primary duy nhất trong khu vực tạo task -->
-          <button type="submit" id="add-btn" class="pixel-btn">
+          <button type="button" id="add-btn" class="pixel-btn" onclick="handleCreateTask()">
             <svg class="sprite" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <rect x="7" y="2" width="2" height="12" fill="var(--text-on-accent)"/>
               <rect x="2" y="7" width="12" height="2" fill="var(--text-on-accent)"/>
@@ -485,33 +503,47 @@
       </div>
     </section>
 
-    <!-- Khu vực 2: Danh sách công việc -->
-    <section class="pixel-box" aria-labelledby="list-heading">
-      <header class="panel-header">
-        <h2 id="list-heading" class="panel-title">DANH SÁCH CÔNG VIỆC</h2>
-        <span id="sync-status" class="sync-status" role="status">ĐANG KẾT NỐI...</span>
-      </header>
+    <!-- Khu vực Bảng Kanban 2 cột -->
+    <section class="kanban-board" aria-label="Bảng Kanban công việc">
+      <!-- Cột 1: Chưa hoàn thành -->
+      <article class="kanban-column" aria-labelledby="todo-col-heading">
+        <header class="kanban-column-header todo-header">
+          <h2 id="todo-col-heading" class="kanban-column-title">
+            <span>⏳</span> CHƯA HOÀN THÀNH
+          </h2>
+          <span id="todo-count" class="column-badge todo-badge">0</span>
+        </header>
+        <div id="todo-list" class="kanban-column-body" aria-live="polite"></div>
+      </article>
 
-      <div class="panel-body">
-        <ul id="task-list" class="task-list" aria-live="polite"></ul>
-        <div id="empty-state" class="empty-state">
-          Chưa có nhiệm vụ nào. Hãy thêm nhiệm vụ mới ở trên để bắt đầu!
-        </div>
-      </div>
+      <!-- Cột 2: Hoàn thành -->
+      <article class="kanban-column" aria-labelledby="done-col-heading">
+        <header class="kanban-column-header done-header">
+          <h2 id="done-col-heading" class="kanban-column-title">
+            <span>⚔️</span> HOÀN THÀNH
+          </h2>
+          <span id="done-count" class="column-badge done-badge">0</span>
+        </header>
+        <div id="done-list" class="kanban-column-body" aria-live="polite"></div>
+      </article>
     </section>
   </main>
 
   <script>
-    const taskForm = document.getElementById('task-form');
     const taskInput = document.getElementById('task-input');
     const errorMsg = document.getElementById('error-msg');
-    const taskList = document.getElementById('task-list');
-    const emptyState = document.getElementById('empty-state');
-    const taskCounter = document.getElementById('task-counter');
+    const todoList = document.getElementById('todo-list');
+    const doneList = document.getElementById('done-list');
+    const todoCount = document.getElementById('todo-count');
+    const doneCount = document.getElementById('done-count');
+    const syncStatus = document.getElementById('sync-status');
+    const cursorEl = document.querySelector('.cursor');
 
-    // Icon SVG Pixel cho nút Đổi trạng thái và nút Xoá
+    const POLL_INTERVAL_MS = 2000;
+    let lastSnapshot = null;
+
     const ICON_CHECK = `
-      <svg class="sprite" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <svg class="sprite" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <rect x="2" y="8" width="2" height="2" fill="var(--text-on-accent)"/>
         <rect x="4" y="10" width="2" height="2" fill="var(--text-on-accent)"/>
         <rect x="6" y="12" width="2" height="2" fill="var(--text-on-accent)"/>
@@ -521,17 +553,18 @@
       </svg>
     `;
 
-    const ICON_BOX = `
-      <svg class="sprite" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <rect x="2" y="2" width="12" height="2" fill="var(--text-on-accent)"/>
-        <rect x="2" y="12" width="12" height="2" fill="var(--text-on-accent)"/>
-        <rect x="2" y="4" width="2" height="8" fill="var(--text-on-accent)"/>
-        <rect x="12" y="4" width="2" height="8" fill="var(--text-on-accent)"/>
+    const ICON_UNDO = `
+      <svg class="sprite" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="4" y="4" width="2" height="6" fill="var(--text-on-accent)"/>
+        <rect x="2" y="6" width="2" height="2" fill="var(--text-on-accent)"/>
+        <rect x="6" y="4" width="6" height="2" fill="var(--text-on-accent)"/>
+        <rect x="12" y="6" width="2" height="6" fill="var(--text-on-accent)"/>
+        <rect x="6" y="12" width="6" height="2" fill="var(--text-on-accent)"/>
       </svg>
     `;
 
     const ICON_TRASH = `
-      <svg class="sprite" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <svg class="sprite" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <rect x="5" y="2" width="6" height="2" fill="var(--text)"/>
         <rect x="2" y="4" width="12" height="2" fill="var(--text)"/>
         <rect x="4" y="6" width="2" height="8" fill="var(--text)"/>
@@ -541,13 +574,6 @@
       </svg>
     `;
 
-    // 1. Xem danh sách task
-    // V2: mọi client đọc từ cùng 1 server; chỉ vẽ lại khi dữ liệu thật sự đổi để không giật UI
-    const POLL_INTERVAL_MS = 2000;
-    const syncStatus = document.getElementById('sync-status');
-    const cursorEl = document.querySelector('.cursor');
-    let lastSnapshot = null;
-
     function setOnline(online) {
       syncStatus.classList.toggle('is-offline', !online);
       cursorEl && cursorEl.classList.toggle('is-offline', !online);
@@ -556,6 +582,7 @@
         : 'MẤT KẾT NỐI SERVER';
     }
 
+    // 1. Tải danh sách task
     async function fetchTasks() {
       try {
         const res = await fetch('/api/tasks', { cache: 'no-store' });
@@ -564,79 +591,77 @@
         const snapshot = JSON.stringify(tasks);
         if (snapshot !== lastSnapshot) {
           lastSnapshot = snapshot;
-          renderTasks(tasks);
+          renderKanban(tasks);
         }
         setOnline(true);
       } catch (err) {
-        console.error('Không lấy được dữ liệu từ server:', err);
+        console.error('Lỗi nạp task:', err);
         setOnline(false);
       }
     }
 
-    // Hiển thị danh sách task ra giao diện
-    function renderTasks(tasks) {
-      taskList.innerHTML = '';
-      const doneCount = tasks.filter(t => t.done).length;
-      taskCounter.textContent = `${doneCount}/${tasks.length} XONG`;
+    // Hiển thị dạng Kanban 2 cột
+    function renderKanban(tasks) {
+      todoList.innerHTML = '';
+      doneList.innerHTML = '';
 
-      if (tasks.length === 0) {
-        emptyState.style.display = 'block';
-        return;
+      const todoTasks = tasks.filter(t => !t.done);
+      const doneTasks = tasks.filter(t => t.done);
+
+      todoCount.textContent = `${todoTasks.length}`;
+      doneCount.textContent = `${doneTasks.length}`;
+
+      if (todoTasks.length === 0) {
+        todoList.innerHTML = '<div class="empty-column">Không có việc cần làm!</div>';
+      } else {
+        todoTasks.forEach(task => todoList.appendChild(createTaskCard(task)));
       }
-      emptyState.style.display = 'none';
 
-      tasks.forEach(task => {
-        const li = document.createElement('li');
-        li.className = `task-item ${task.done ? 'is-done' : ''}`;
+      if (doneTasks.length === 0) {
+        doneList.innerHTML = '<div class="empty-column">Chưa hoàn thành việc nào!</div>';
+      } else {
+        doneTasks.forEach(task => doneList.appendChild(createTaskCard(task)));
+      }
+    }
 
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'task-info';
+    function createTaskCard(task) {
+      const card = document.createElement('div');
+      card.className = `task-card ${task.done ? 'is-done' : ''}`;
 
-        const statusTag = document.createElement('span');
-        statusTag.className = `task-status-tag ${task.done ? 'tag-done' : 'tag-todo'}`;
-        statusTag.textContent = task.done ? 'ĐÃ XONG' : 'CHƯA XONG';
+      const title = document.createElement('div');
+      title.className = 'task-card-title';
+      title.textContent = task.name;
 
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'task-name';
-        nameSpan.textContent = task.name;
+      const actions = document.createElement('div');
+      actions.className = 'task-card-actions';
 
-        infoDiv.appendChild(statusTag);
-        infoDiv.appendChild(nameSpan);
+      // Nút chuyển trạng thái Kanban: Chưa xong -> Xong (hoặc Xong -> Chưa xong)
+      const toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button';
+      toggleBtn.className = `pixel-btn status-btn ${task.done ? 'pixel-btn--secondary' : 'pixel-btn'}`;
+      toggleBtn.innerHTML = `${task.done ? ICON_UNDO : ICON_CHECK} <span>${task.done ? 'CHƯA XONG' : 'XONG'}</span>`;
+      toggleBtn.setAttribute('aria-label', `${task.done ? 'Chuyển về chưa hoàn thành' : 'Đánh dấu hoàn thành'} cho ${task.name}`);
+      toggleBtn.onclick = () => setTaskDone(task.id, !task.done);
 
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'task-actions';
+      // Nút xoá
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'pixel-btn status-btn pixel-btn--danger';
+      deleteBtn.innerHTML = `${ICON_TRASH} <span>XOÁ</span>`;
+      deleteBtn.setAttribute('aria-label', `Xoá nhiệm vụ ${task.name}`);
+      deleteBtn.onclick = () => deleteTask(task.id);
 
-        // Nút đổi trạng thái: chưa hoàn thành <-> hoàn thành
-        const toggleBtn = document.createElement('button');
-        toggleBtn.type = 'button';
-        toggleBtn.className = `pixel-btn status-btn pixel-btn--secondary`;
-        toggleBtn.innerHTML = `${task.done ? ICON_CHECK : ICON_BOX} <span>${task.done ? 'LÀM LẠI' : 'HOÀN THÀNH'}</span>`;
-        toggleBtn.setAttribute('aria-label', `${task.done ? 'Đánh dấu chưa hoàn thành' : 'Đánh dấu hoàn thành'} cho ${task.name}`);
-        toggleBtn.addEventListener('click', () => setTaskDone(task.id, !task.done));
+      actions.appendChild(toggleBtn);
+      actions.appendChild(deleteBtn);
 
-        // Nút xoá task
-        const deleteBtn = document.createElement('button');
-        deleteBtn.type = 'button';
-        deleteBtn.className = 'pixel-btn status-btn pixel-btn--danger';
-        deleteBtn.innerHTML = `${ICON_TRASH} <span>XOÁ</span>`;
-        deleteBtn.setAttribute('aria-label', `Xoá nhiệm vụ ${task.name}`);
-        deleteBtn.addEventListener('click', () => deleteTask(task.id));
+      card.appendChild(title);
+      card.appendChild(actions);
 
-        actionsDiv.appendChild(toggleBtn);
-        actionsDiv.appendChild(deleteBtn);
-
-        li.appendChild(infoDiv);
-        li.appendChild(actionsDiv);
-        taskList.appendChild(li);
-      });
+      return card;
     }
 
     // 2. Tạo task có tên
-    let isSubmitting = false;
-
     async function handleCreateTask() {
-      if (isSubmitting) return;
-
       const name = taskInput.value.trim();
 
       if (!name) {
@@ -648,10 +673,7 @@
 
       taskInput.classList.remove('is-error');
       errorMsg.classList.remove('visible');
-
-      isSubmitting = true;
-      const addBtn = document.getElementById('add-btn');
-      if (addBtn) addBtn.disabled = true;
+      taskInput.value = '';
 
       try {
         const res = await fetch('/api/tasks', {
@@ -661,32 +683,39 @@
         });
 
         if (res.ok) {
-          taskInput.value = '';
           await fetchTasks();
         }
       } catch (err) {
-        console.error('Lỗi thêm task:', err);
+        console.error('Lỗi tạo task:', err);
         setOnline(false);
       } finally {
-        isSubmitting = false;
-        if (addBtn) addBtn.disabled = false;
         taskInput.focus();
       }
     }
 
-    // Gắn sự kiện submit form
-    taskForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      handleCreateTask();
-    });
+    // 3. Đổi trạng thái task
+    async function setTaskDone(id, done) {
+      try {
+        const res = await fetch(`/api/tasks/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ done })
+        });
+        if (res.status === 404) alert('Nhiệm vụ này đã bị xoá.');
+      } catch (err) {
+        setOnline(false);
+      }
+      await fetchTasks();
+    }
 
-    // Đảm bảo click trực tiếp nút hoặc phím Enter luôn kích hoạt ngay lần đầu
-    const addBtn = document.getElementById('add-btn');
-    if (addBtn) {
-      addBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        handleCreateTask();
-      });
+    // 4. Xoá task
+    async function deleteTask(id) {
+      try {
+        await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+      } catch (err) {
+        setOnline(false);
+      }
+      await fetchTasks();
     }
 
     taskInput.addEventListener('keydown', (e) => {
@@ -703,37 +732,9 @@
       }
     });
 
-    // 3. Đổi trạng thái task: chưa hoàn thành <-> hoàn thành
-    // V2: gửi trạng thái mong muốn thay vì "lật" để không đè thao tác của client khác
-    async function setTaskDone(id, done) {
-      try {
-        const res = await fetch(`/api/tasks/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ done })
-        });
-        if (res.status === 404) alert('Nhiệm vụ này đã bị người khác xoá.');
-      } catch (err) {
-        setOnline(false);
-      }
-      await fetchTasks();
-    }
-
-    // 4. Xoá task
-    async function deleteTask(id) {
-      try {
-        // 404 nghĩa là client khác đã xoá trước -> chỉ cần tải lại danh sách
-        await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
-      } catch (err) {
-        setOnline(false);
-      }
-      await fetchTasks();
-    }
-
-    // Tải danh sách khi mở trang, sau đó polling định kỳ để thấy thay đổi từ client khác
+    // Chu kỳ cập nhật Kanban đồng bộ
     fetchTasks();
     setInterval(fetchTasks, POLL_INTERVAL_MS);
-    // Quay lại tab thì cập nhật ngay, không chờ chu kỳ polling
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) fetchTasks();
     });
