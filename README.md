@@ -8,7 +8,7 @@
 3. Đổi trạng thái task: chưa hoàn thành ↔ hoàn thành
 4. Xoá task
 
-Dữ liệu được lưu trực tiếp vào file `tasks.json` và giữ nguyên sau khi tắt/bật lại server.
+Ở V1 và V2, dữ liệu được lưu trực tiếp vào file `tasks.json`. Từ V3 trở đi, dữ liệu được lưu bền vững vào cơ sở dữ liệu SQLite (`tasks.db`); file `tasks.json` chỉ còn đóng vai trò là nguồn dữ liệu cũ để tự động chuyển đổi (migrate) vào SQLite khi khởi động.
 
 ## Cách cài đặt
 

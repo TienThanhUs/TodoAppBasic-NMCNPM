@@ -29,7 +29,7 @@ Dữ liệu chỉ nằm ở server (`tasks.json`). Client không lưu bản sao 
 
 | Version | NFR mới | Quyết định thiết kế | File/thành phần đổi | Kết quả test |
 |---|---|---|---|---|
-| V2 | Chia sẻ trạng thái tập trung giữa nhiều client | Giữ server V1, mọi client đọc/ghi qua API; polling 2s; đặt trạng thái tường minh `{done}` thay cho toggle; id UUID; ghi file atomic; listen 0.0.0.0 để máy khác trong LAN vào được | `server.js`, `public/index.html` | A tạo 2 task → B thấy sau ≤2s không reload; B đánh dấu xong → A thấy `1/2 XONG`; tắt server → client báo mất kết nối |
+| V2 | Chia sẻ trạng thái tập trung giữa nhiều client | Giữ server V1, mọi client đọc/ghi qua API; polling 2s; đặt trạng thái tường minh `{done}` thay cho toggle; id duy nhất (UUID sinh bởi `crypto.randomUUID` thay `Date.now`, dữ liệu cũ giữ nguyên `task-1`, `task-2`); ghi file atomic; listen 0.0.0.0 để máy khác trong LAN vào được | `server.js`, `public/index.html` | A tạo 2 task → B thấy sau ≤2s không reload; B đánh dấu xong → A thấy `1/2 XONG`; tắt server → client báo mất kết nối |
 
 ## Đánh đổi
 

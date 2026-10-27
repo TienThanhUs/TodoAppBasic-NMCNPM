@@ -61,7 +61,20 @@ Không có signaling server: mã SDP được người dùng tự chuyển cho n
 
 | Version | NFR mới | Quyết định thiết kế | File/thành phần đổi | Kết quả test |
 |---|---|---|---|---|
-| V4 | Availability khi server mất; giao tiếp ngang hàng | Giữ V3 làm chế độ thường; thêm WebRTC DataChannel với signaling thủ công; mỗi peer giữ LocalReplica; đồng bộ bằng snapshot lúc kết nối + thao tác (op) sau đó; trùng id thì bản sửa sau thắng (`updatedAt`) | Thêm `public/js/peer-link.js`, `public/js/local-replica.js`; sửa `public/index.html`. Server không đổi | Kết nối A–B, tắt server (fetch tới server thất bại); A tạo task → B nhận; B đổi trạng thái → A nhận; B xoá → A nhận |
+| V4 | Availability khi server mất; giao tiếp ngang hàng | Giữ V3 làm chế độ thường; thêm WebRTC DataChannel với signaling thủ công; mỗi peer giữ LocalReplica; đồng bộ bằng snapshot lúc kết nối + phát op sau đó; xung đột xử lý một phần dựa vào nhãn thời gian `updatedAt` | Thêm `public/js/peer-link.js`, `public/js/local-replica.js`; sửa `public/index.html`. Server không đổi | Kết nối A–B, tắt server (fetch tới server thất bại); A tạo task → B nhận; B đổi trạng thái → A nhận; B xoá → A nhận |
+
+## Cơ chế xử lý dữ liệu và xung đột trong code thực tế
+
+Đọc kỹ mã nguồn `public/js/local-replica.js` và `public/index.html`, hệ thống xử lý xung đột như sau:
+
+- **Chỗ CÓ kiểm tra `updatedAt`:**
+  - Thao tác cập nhật trạng thái (`op.type === 'update'`): Trong `LocalReplica.apply()`, code so sánh `if (!task || op.updatedAt < (task.updatedAt || 0)) return false;`. Nếu thao tác từ peer mang `updatedAt` nhỏ hơn thời gian cập nhật hiện tại của task cục bộ thì sẽ bị từ chối; nếu lớn hơn hoặc bằng thì mới ghi đè `task.done = op.done; task.updatedAt = op.updatedAt;`.
+  - Hợp nhất bản sao khi kết nối (`LocalReplica.merge()`): So sánh `if (!mine || (r.updatedAt || 0) > (mine.updatedAt || 0))` để chọn task có `updatedAt` lớn hơn khi trùng `id`.
+- **Chỗ GHI ĐÈ THẲNG / KHÔNG kiểm tra `updatedAt`:**
+  - Thao tác xoá (`op.type === 'delete'`): Code lọc bỏ ngay lập tức task khỏi mảng (`this.tasks.filter(t => t.id !== op.id)`), hoàn toàn **không mang theo `updatedAt`** và **không lưu tombstone**.
+  - Thao tác tạo (`op.type === 'create'`): Nếu `id` đã tồn tại thì bỏ qua luôn (`return false`), không so sánh nội dung.
+  - Khi còn server: Polling định kỳ gọi `replaceAll()`, ghi đè toàn bộ danh sách từ server vào replica và gán `updatedAt = 0` cho các task mới.
+- **Kết luận:** Hệ thống **chưa đạt được Last-Write-Wins (LWW) đầy đủ**, mà chỉ áp dụng quy tắc nhãn thời gian thô sơ cho trường hợp sửa trạng thái task; các thao tác khác phụ thuộc vào thứ tự nhận tin và dễ xảy ra hiện tượng mất dữ liệu hoặc task đã xoá bị sống lại.
 
 ## Đánh đổi và giới hạn
 
@@ -70,17 +83,18 @@ Không có signaling server: mã SDP được người dùng tự chuyển cho n
 | Vẫn làm việc khi server chết, miễn kênh peer còn sống | Không còn một nguồn dữ liệu chuẩn duy nhất; mỗi peer có bản riêng |
 | Không cần hạ tầng mới, chạy hoàn toàn trên trình duyệt | Thay đổi lúc P2P **không ghi về SQLite**; bật lại server thì client quay về dữ liệu server |
 | Độ trễ thấp (truyền thẳng) | Chỉ 2 peer; thêm người phải nối lưới nhiều kết nối |
-| | Không giải quyết xung đột thật sự: hai người sửa cùng task → bản `updatedAt` lớn hơn thắng, phụ thuộc đồng hồ máy |
+| | Không giải quyết xung đột đầy đủ: chỉ kiểm tra `updatedAt` khi update trạng thái, phụ thuộc giờ máy |
 | | Không có tombstone: task bị xoá trước khi kết nối có thể "sống lại" khi ghép bản sao |
 | | Peer mất kết nối thì thao tác không được gửi lại (không có hàng đợi) |
-| | Trang phải được mở khi server còn sống; tải lại trang khi server đã tắt thì không mở được |
+| | Phải mở trang khi server còn sống. Nếu bấm F5 lúc server đã tắt thì báo lỗi, vì chưa có Service Worker/cache offline |
 
 ### Giới hạn / Chưa làm được (mã nguồn thực tế)
 
-1. **Không có tombstone:** Thao tác xoá task chỉ đơn thuần xoá phần tử khỏi mảng trong `LocalReplica`. Khi hai peer ghép bản sao (snapshot merge), task đã bị xoá ở peer này nhưng vẫn còn ở peer kia sẽ được khôi phục trở lại ("sống lại").
-2. **Cơ chế LWW phụ thuộc vào Date.now():** Quy tắc Last-Write-Wins so sánh nhãn thời gian `updatedAt` sinh ra từ đồng hồ của từng máy client (`Date.now()`). Nếu đồng hồ giữa hai máy bị lệch, máy có đồng hồ chạy nhanh hơn sẽ luôn ghi đè thay đổi của máy kia bất kể thứ tự thời gian thực tế.
-3. **Chỉ hỗ trợ 2 peer:** Triển khai WebRTC hiện tại là kết nối điểm-điểm (1-1), chưa có giải pháp định tuyến dạng lưới (Mesh Network) cho nhóm từ 3 peer trở lên.
-4. **Signaling thủ công:** Quá trình trao đổi thông tin kết nối (SDP Offer/Answer) hoàn toàn phụ thuộc vào việc người dùng tự sao chép và dán chuỗi ký tự qua kênh liên lạc ngoài (chat, email), chưa có cơ chế tự động tìm kiếm hay kết nối lại.
+1. **Phải mở trang khi server còn sống:** Nếu bấm F5 lúc server đã tắt thì báo lỗi (không tải được HTML/CSS/JS), vì ứng dụng chưa có Service Worker/cache offline (chưa phải PWA).
+2. **Không có tombstone:** Thao tác xoá task chỉ đơn thuần xoá phần tử khỏi mảng trong `LocalReplica`. Khi hai peer ghép bản sao (snapshot merge), task đã bị xoá ở peer này nhưng vẫn còn ở peer kia sẽ được khôi phục trở lại ("sống lại").
+3. **Cơ chế LWW phụ thuộc vào Date.now():** Quy tắc Last-Write-Wins so sánh nhãn thời gian `updatedAt` sinh ra từ đồng hồ của từng máy client (`Date.now()`). Nếu đồng hồ giữa hai máy bị lệch, máy có đồng hồ chạy nhanh hơn sẽ luôn ghi đè thay đổi của máy kia bất kể thứ tự thời gian thực tế.
+4. **Chỉ hỗ trợ 2 peer:** Triển khai WebRTC hiện tại là kết nối điểm-điểm (1-1), chưa có giải pháp định tuyến dạng lưới (Mesh Network) cho nhóm từ 3 peer trở lên.
+5. **Signaling thủ công:** Quá trình trao đổi thông tin kết nối (SDP Offer/Answer) hoàn toàn phụ thuộc vào việc người dùng tự sao chép và dán chuỗi ký tự qua kênh liên lạc ngoài (chat, email), chưa có cơ chế tự động tìm kiếm hay kết nối lại.
 
 > **Lưu ý:** V4 chưa giải quyết xung đột đầy đủ.
 
