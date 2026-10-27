@@ -27,6 +27,34 @@ npm start
 Sau đó mở trình duyệt và truy cập:
 **http://localhost:3000**
 
+## Cách thử từng version
+
+Codebase này quản lý cả 4 phiên bản qua Git tag (`v1`, `v2`, `v3`, `v4`):
+
+1. **Chuyển sang version cần thử:**
+   - Cách 1 (checkout trực tiếp):
+     ```bash
+     git checkout v1   # hoặc v2, v3, v4
+     ```
+   - Cách 2 (dùng git worktree để chạy song song ở thư mục riêng):
+     ```bash
+     git worktree add ../todo-v1 v1
+     cd ../todo-v1
+     ```
+2. **Cài đặt thư viện (nếu cần):**
+   ```bash
+   npm install
+   ```
+3. **Chạy ứng dụng:**
+   ```bash
+   npm start
+   ```
+4. **Truy cập:** Mở trình duyệt tại **http://localhost:3000**
+5. **Lưu ý quan trọng:** Sau khi thử xong, nhớ tắt server (Ctrl+C) và quay lại phiên bản mới nhất trên nhánh chính:
+   ```bash
+   git checkout main
+   ```
+
 ## Version 4 – Đồng bộ P2P khi mất server
 
 Chế độ thường vẫn là V3 (Client–Server + SQLite). V4 thêm khung **KẾT NỐI P2P** ở cuối trang: hai trình duyệt nối thẳng với nhau bằng WebRTC DataChannel, signaling thủ công bằng copy-paste mã (không có server trung gian). Chi tiết: [`docs/V4-p2p.md`](docs/V4-p2p.md)

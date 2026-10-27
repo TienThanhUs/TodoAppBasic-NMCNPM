@@ -75,6 +75,15 @@ Không có signaling server: mã SDP được người dùng tự chuyển cho n
 | | Peer mất kết nối thì thao tác không được gửi lại (không có hàng đợi) |
 | | Trang phải được mở khi server còn sống; tải lại trang khi server đã tắt thì không mở được |
 
+### Giới hạn / Chưa làm được (mã nguồn thực tế)
+
+1. **Không có tombstone:** Thao tác xoá task chỉ đơn thuần xoá phần tử khỏi mảng trong `LocalReplica`. Khi hai peer ghép bản sao (snapshot merge), task đã bị xoá ở peer này nhưng vẫn còn ở peer kia sẽ được khôi phục trở lại ("sống lại").
+2. **Cơ chế LWW phụ thuộc vào Date.now():** Quy tắc Last-Write-Wins so sánh nhãn thời gian `updatedAt` sinh ra từ đồng hồ của từng máy client (`Date.now()`). Nếu đồng hồ giữa hai máy bị lệch, máy có đồng hồ chạy nhanh hơn sẽ luôn ghi đè thay đổi của máy kia bất kể thứ tự thời gian thực tế.
+3. **Chỉ hỗ trợ 2 peer:** Triển khai WebRTC hiện tại là kết nối điểm-điểm (1-1), chưa có giải pháp định tuyến dạng lưới (Mesh Network) cho nhóm từ 3 peer trở lên.
+4. **Signaling thủ công:** Quá trình trao đổi thông tin kết nối (SDP Offer/Answer) hoàn toàn phụ thuộc vào việc người dùng tự sao chép và dán chuỗi ký tự qua kênh liên lạc ngoài (chat, email), chưa có cơ chế tự động tìm kiếm hay kết nối lại.
+
+> **Lưu ý:** V4 chưa giải quyết xung đột đầy đủ.
+
 ## Trả lời câu hỏi thảo luận
 
 1. **V2 thay đổi gì thật sự?** V1 đã có server nhưng client chỉ tải dữ liệu 1 lần. V2 cho server nghe trên LAN và client polling định kỳ, nên nhiều thiết bị cùng thấy một nguồn dữ liệu; đổi toggle thành đặt giá trị tường minh để 2 người không lật trạng thái của nhau.

@@ -38,6 +38,23 @@ flowchart TB
 
 ## File thay đổi theo từng yêu cầu
 
+Dựa trên kết quả thực tế từ `git diff --stat v2 v3` (xem minh chứng tại [ảnh v3-6](screenshots/v3-6-file-thay-doi.png) và [ảnh v3-7](screenshots/v3-7-tach-lop.png)), các thay đổi được phân định rõ ràng thành 2 nhóm độc lập:
+
+### 1. Danh sách file đổi khi đổi giao diện sang Kanban
+- `public/index.html`: Chuyển layout từ danh sách phẳng 1 cột sang bảng Kanban 2 cột ("Chưa hoàn thành" và "Hoàn thành"), thêm nút chuyển trạng thái bằng thao tác bấm.
+- **File không đổi:** Toàn bộ tầng Business Logic (`src/business/TaskService.js`), tầng Data Access (`src/data/**`), và tầng Routes (`src/routes/**`).
+
+### 2. Danh sách file đổi khi đổi JSON sang SQLite & kiến trúc 3 lớp
+- `package.json` & `package-lock.json`: Thêm dependency `better-sqlite3`.
+- `src/data/ITaskRepository.js`: Hợp đồng chuẩn cho tầng Data Access (chứa các phương thức CRUD).
+- `src/data/SqliteTaskRepository.js`: Cài đặt `ITaskRepository` thao tác với file CSDL `tasks.db`.
+- `scripts/migrate-to-sqlite.js`: Script nạp dữ liệu cũ từ `tasks.json` sang `tasks.db` (`INSERT OR IGNORE`).
+- `src/business/TaskService.js`: Tầng nghiệp vụ xử lý logic task, chỉ phụ thuộc vào `ITaskRepository`, không phụ thuộc vào SQLite hay Express.
+- `src/routes/taskRoutes.js`: Tách tầng Presentation Controller tiếp nhận HTTP requests từ Express.
+- `server.js`: Rút gọn chỉ làm Composition Root để lắp ráp các lớp (Repo → Service → Controller).
+- `.gitignore`: Bỏ qua các file CSDL `*.db`, `*.db-journal`.
+- **File không đổi:** Giao diện người dùng (`public/index.html`) hoàn toàn không thay đổi khi thay đổi cơ chế lưu trữ phía dưới.
+
 | Yêu cầu | File đổi | File **không** đổi |
 |---|---|---|
 | Đổi UI sang Kanban | `public/index.html` | `src/business/`, `src/data/`, `src/routes/` |
@@ -51,7 +68,7 @@ flowchart TB
 
 | Version | NFR mới | Quyết định thiết kế | File/thành phần đổi | Kết quả test |
 |---|---|---|---|---|
-| V3 | Modifiability: thay UI và persistence mà nghiệp vụ vẫn chạy | Tách 3 lớp, dependency injection Repo → Service → Router; repository interface; migration idempotent (`INSERT OR IGNORE`) chạy lúc khởi động | `server.js`, `src/**`, `scripts/migrate-to-sqlite.js`, `public/index.html`, `package.json` | _(nhóm V3 điền: task V2 còn sau migrate, CRUD trên Kanban, restart vẫn giữ dữ liệu)_ |
+| V3 | Modifiability: thay UI và persistence mà nghiệp vụ vẫn chạy | Tách 3 lớp, dependency injection Repo → Service → Router; repository interface; migration idempotent (`INSERT OR IGNORE`) chạy lúc khởi động | `server.js`, `src/**`, `scripts/migrate-to-sqlite.js`, `public/index.html`, `package.json` | Khởi động server V3 tự động chạy migration chuyển 2 task cũ từ `tasks.json` sang SQLite (`tasks.db`); giao diện Kanban hiển thị đúng 2 task ở 2 cột; tạo task mới ("Task moi Kanban V3") và chuyển trạng thái thành công; restart server dữ liệu vẫn còn nguyên (3 task); chạy lại migration lần 2 không bị nhân đôi task (3 task trước = 3 task sau) ✅ |
 
 ## Đánh đổi
 
