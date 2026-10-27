@@ -1,6 +1,6 @@
-# Nhật ký dùng coding agent (V2, V4)
+# Nhật ký dùng coding agent (V2, V3, V4)
 
-Agent: Claude (claude.ai). Người thực hiện: Võ Trúc Quỳnh.
+Agent: Claude / Coding Agent. Người thực hiện: Võ Trúc Quỳnh.
 
 ## V2 – Client–Server nhiều client
 
@@ -19,6 +19,24 @@ Agent: Claude (claude.ai). Người thực hiện: Võ Trúc Quỳnh.
 | PowerShell báo hàng loạt lỗi đỏ | Dán nhầm cả output cũ vào terminal | Chỉ gõ lệnh, kiểm tra lại bằng `git log` → commit không bị ảnh hưởng |
 
 **Kiểm chứng (tự thao tác):** Chrome thường + ẩn danh; A tạo task → B thấy không reload; B đánh dấu xong → A thấy; tắt server → cả hai báo MẤT KẾT NỐI SERVER. Ảnh: `docs/screenshots/v2-*.png`.
+
+## V3 – Đổi giao diện và nguồn lưu trữ (N-Layer)
+
+**Ràng buộc mới:** Giao diện danh sách cũ phải thay bằng bảng Kanban 2 cột (Chưa hoàn thành và Hoàn thành); đổi nơi lưu trữ từ `tasks.json` sang SQLite (`better-sqlite3`); không mất task cũ và không nhân đôi dữ liệu khi migrate lại.
+**Hạn chế của thiết kế hiện tại (V2):** `server.js` trộn lẫn cả định tuyến HTTP, xử lý nghiệp vụ và đọc/ghi file JSON; nếu đổi UI hoặc đổi nơi lưu trữ thì phải sửa đan xen, vi phạm Modifiability.
+
+**Prompt chính:**
+- Phân tích code hiện tại V2: chỉ ra chỗ trộn lẫn Presentation / Business Logic / Data Access; đề xuất cách tách thành 3 phần rõ ràng.
+- Yêu cầu agent sửa code hiện có: tách 3 lớp (UI + Controller router, TaskService, Repository interface + SqliteTaskRepository); chuyển UI sang Kanban 2 cột; chuyển persistence sang SQLite; viết script migrate idempotent `INSERT OR IGNORE`; giữ nguyên API và hành vi CRUD.
+
+**Lỗi phát sinh và cách xử lý:**
+
+| Lỗi | Nguyên nhân | Xử lý |
+|---|---|---|
+| `Cannot find module 'better-sqlite3'` khi chạy worktree mới | Thư viện native C++ của better-sqlite3 chưa được build cho môi trường Node hiện tại trong worktree | Chạy `npm install` ngay tại thư mục worktree để build native binary |
+| Tranh chấp cổng 3000 khi kiểm thử | Cổng 3000 bị chiếm nếu không tắt server phiên bản trước | Luôn kiểm tra và tắt tiến trình trước khi chuyển sang chạy phiên bản tiếp theo |
+
+**Kiểm chứng (tự thao tác):** Chạy server V3 tự động migrate 2 task cũ từ `tasks.json` vào SQLite (`tasks.db`); giao diện Kanban 2 cột hiển thị đầy đủ; gọi API tạo task mới và chuyển trạng thái; tắt server bật lại vẫn giữ nguyên 3 task; chạy script migrate lần 2 kết quả 3 task trước = 3 task sau không bị nhân đôi; lệnh grep kiểm tra `TaskService.js` chứng minh tầng nghiệp vụ độc lập, chỉ require module `crypto` chuẩn của Node.js. Ảnh: `docs/screenshots/v3-*.png`.
 
 ## V4 – Đồng bộ P2P khi mất server
 
