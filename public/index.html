@@ -432,6 +432,25 @@
 
     /* Con trỏ nhấp nháy kiểu pixel */
     @keyframes blink { 50% { opacity: 0; } }
+    /* V4: khung kết nối P2P */
+    .p2p-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .p2p-field { display: flex; flex-direction: column; gap: 8px; }
+    .p2p-label { font-family: var(--font-pixel); font-size: 0.8rem; color: var(--text-muted); }
+    .p2p-code {
+      width: 100%; min-height: 84px; resize: vertical;
+      font-family: monospace; font-size: 0.7rem; word-break: break-all;
+      background: var(--bg-inset); color: var(--text);
+      border: var(--border-w-sm) solid var(--outline); padding: 8px;
+    }
+    .p2p-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .p2p-log {
+      margin-top: 12px; max-height: 120px; overflow-y: auto;
+      background: var(--bg-inset); border: var(--border-w-sm) solid var(--outline);
+      padding: 8px; font-family: monospace; font-size: 0.72rem; color: var(--text-muted);
+    }
+    .sync-status.is-p2p { color: var(--blue-light); }
+    @media (max-width: 640px) { .p2p-grid { grid-template-columns: 1fr; } }
+
     .cursor {
       display: inline-block;
       width: 12px;
@@ -527,7 +546,37 @@
         <div id="done-list" class="kanban-column-body" aria-live="polite"></div>
       </article>
     </section>
+
+    <!-- V4: Kết nối P2P trực tiếp giữa 2 peer (signaling thủ công bằng copy-paste) -->
+    <section class="pixel-box" aria-labelledby="p2p-heading">
+      <header class="panel-header">
+        <h2 id="p2p-heading" class="panel-title">KẾT NỐI P2P</h2>
+        <span id="p2p-status" class="sync-status is-offline" role="status">CHƯA KẾT NỐI</span>
+      </header>
+      <div class="panel-body">
+        <div class="p2p-grid">
+          <div class="p2p-field">
+            <label for="p2p-my-code" class="p2p-label">MÃ CỦA BẠN (copy gửi cho người kia)</label>
+            <textarea id="p2p-my-code" class="p2p-code" readonly placeholder="Bấm TẠO MÃ MỜI..."></textarea>
+          </div>
+          <div class="p2p-field">
+            <label for="p2p-their-code" class="p2p-label">DÁN MÃ NGƯỜI KIA GỬI</label>
+            <textarea id="p2p-their-code" class="p2p-code" placeholder="Dán mã mời hoặc mã trả lời vào đây..."></textarea>
+          </div>
+        </div>
+        <div class="p2p-actions">
+          <button type="button" id="p2p-offer-btn" class="pixel-btn pixel-btn--secondary">1. TẠO MÃ MỜI</button>
+          <button type="button" id="p2p-copy-btn" class="pixel-btn pixel-btn--secondary">COPY MÃ</button>
+          <button type="button" id="p2p-accept-btn" class="pixel-btn">2. XỬ LÝ MÃ ĐÃ DÁN</button>
+          <button type="button" id="p2p-leave-btn" class="pixel-btn pixel-btn--danger">VỀ CHẾ ĐỘ SERVER</button>
+        </div>
+        <div id="p2p-log" class="p2p-log" aria-live="polite"></div>
+      </div>
+    </section>
   </main>
+
+  <script src="js/peer-link.js"></script>
+  <script src="js/local-replica.js"></script>
 
   <script>
     const taskInput = document.getElementById('task-input');
@@ -582,8 +631,128 @@
         : 'MẤT KẾT NỐI SERVER';
     }
 
+    // ===== V4: hai chế độ dùng chung giao diện Kanban =====
+    // 'server' = V3 bình thường (Client–Server qua API)
+    // 'p2p'    = đọc/ghi bản sao cục bộ + gửi thao tác thẳng tới peer qua DataChannel
+    const replica = new LocalReplica();
+    const peer = new PeerLink();
+    let mode = 'server';
+
+    const p2pStatus = document.getElementById('p2p-status');
+    const p2pLog = document.getElementById('p2p-log');
+    const myCodeBox = document.getElementById('p2p-my-code');
+    const theirCodeBox = document.getElementById('p2p-their-code');
+
+    // crypto.randomUUID chỉ có trên localhost/HTTPS; mở qua IP LAN (http) thì dùng cách dự phòng
+    function makeId() {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    }
+
+    function logP2P(text) {
+      const line = document.createElement('div');
+      line.textContent = `[${new Date().toLocaleTimeString('vi-VN')}] ${text}`;
+      p2pLog.prepend(line);
+    }
+
+    function setP2PStatus(text, ok) {
+      p2pStatus.textContent = text;
+      p2pStatus.classList.toggle('is-offline', !ok);
+      p2pStatus.classList.toggle('is-p2p', ok);
+    }
+
+    function renderFromReplica() {
+      const tasks = replica.getAll();
+      lastSnapshot = JSON.stringify(tasks);
+      renderKanban(tasks);
+    }
+
+    function enterP2PMode() {
+      if (mode === 'p2p') return;
+      mode = 'p2p';
+      syncStatus.classList.remove('is-offline');
+      syncStatus.classList.add('is-p2p');
+      syncStatus.textContent = 'CHẾ ĐỘ P2P';
+      cursorEl && cursorEl.classList.remove('is-offline');
+      renderFromReplica();
+    }
+
+    // Áp dụng thao tác ở máy mình rồi gửi cho peer
+    function applyAndBroadcast(op) {
+      if (replica.apply(op)) renderFromReplica();
+      const sent = peer.send({ type: 'op', op });
+      logP2P(sent ? `GỬI ${op.type} → peer` : `CHƯA GỬI ĐƯỢC ${op.type} (mất kết nối peer)`);
+    }
+
+    peer.onMessage = (msg) => {
+      if (msg.type === 'snapshot') {
+        replica.merge(msg.tasks);
+        renderFromReplica();
+        logP2P(`NHẬN bản sao ${msg.tasks.length} task từ peer`);
+      } else if (msg.type === 'op') {
+        if (replica.apply(msg.op)) renderFromReplica();
+        logP2P(`NHẬN ${msg.op.type} ← peer`);
+      }
+    };
+
+    peer.onStateChange = (state) => {
+      if (state === 'open') {
+        setP2PStatus('ĐÃ KẾT NỐI P2P', true);
+        logP2P('Kênh DataChannel đã mở. Có thể tắt server.');
+        enterP2PMode();
+        // Trao đổi toàn bộ bản sao để 2 bên bắt đầu từ cùng dữ liệu
+        peer.send({ type: 'snapshot', tasks: replica.getAll() });
+      } else if (state === 'closed' || state === 'failed' || state === 'disconnected') {
+        setP2PStatus('MẤT KẾT NỐI PEER', false);
+        logP2P(`Kết nối peer: ${state}`);
+      } else if (peer.isOpen) {
+        // 'connected' có thể đến sau 'open': kênh đã mở thì giữ trạng thái ĐÃ KẾT NỐI
+        setP2PStatus('ĐÃ KẾT NỐI P2P', true);
+      } else {
+        setP2PStatus(`ĐANG KẾT NỐI (${state})`, false);
+      }
+    };
+
+    document.getElementById('p2p-offer-btn').onclick = async () => {
+      myCodeBox.value = 'Đang tạo mã...';
+      try {
+        myCodeBox.value = await peer.createOffer();
+        logP2P('Đã tạo mã mời. Gửi cho người kia, chờ mã trả lời.');
+      } catch (err) {
+        myCodeBox.value = '';
+        logP2P(`Lỗi tạo mã: ${err.message}`);
+      }
+    };
+
+    document.getElementById('p2p-accept-btn').onclick = async () => {
+      if (!theirCodeBox.value.trim()) return;
+      try {
+        const reply = await peer.handlePastedCode(theirCodeBox.value);
+        if (reply) {
+          myCodeBox.value = reply;
+          logP2P('Đã nhận mã mời. Gửi MÃ CỦA BẠN lại cho người kia.');
+        } else {
+          logP2P('Đã nhận mã trả lời. Đang kết nối...');
+        }
+      } catch (err) {
+        logP2P(`Mã không hợp lệ: ${err.message}`);
+      }
+    };
+
+    document.getElementById('p2p-copy-btn').onclick = () => {
+      myCodeBox.select();
+      document.execCommand('copy');
+      logP2P('Đã copy mã.');
+    };
+
+    document.getElementById('p2p-leave-btn').onclick = () => {
+      peer.close();
+      location.reload();
+    };
+
     // 1. Tải danh sách task
     async function fetchTasks() {
+      if (mode === 'p2p') return; // chế độ P2P không đọc từ server
       try {
         const res = await fetch('/api/tasks', { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -593,6 +762,7 @@
           lastSnapshot = snapshot;
           renderKanban(tasks);
         }
+        replica.replaceAll(tasks); // V4: luôn giữ bản sao mới nhất để dùng khi mất server
         setOnline(true);
       } catch (err) {
         console.error('Lỗi nạp task:', err);
@@ -675,6 +845,15 @@
       errorMsg.classList.remove('visible');
       taskInput.value = '';
 
+      if (mode === 'p2p') {
+        applyAndBroadcast({
+          type: 'create',
+          task: { id: makeId(), name, done: false, updatedAt: Date.now() }
+        });
+        taskInput.focus();
+        return;
+      }
+
       try {
         const res = await fetch('/api/tasks', {
           method: 'POST',
@@ -695,6 +874,10 @@
 
     // 3. Đổi trạng thái task
     async function setTaskDone(id, done) {
+      if (mode === 'p2p') {
+        applyAndBroadcast({ type: 'update', id, done, updatedAt: Date.now() });
+        return;
+      }
       try {
         const res = await fetch(`/api/tasks/${id}`, {
           method: 'PATCH',
@@ -710,6 +893,10 @@
 
     // 4. Xoá task
     async function deleteTask(id) {
+      if (mode === 'p2p') {
+        applyAndBroadcast({ type: 'delete', id });
+        return;
+      }
       try {
         await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
       } catch (err) {
